@@ -175,14 +175,16 @@ struct CleanableItem: Identifiable, Hashable {
     /// True for action-only items (Docker prune, simctl runtimes) that have
     /// no real filesystem path to reveal in Finder.
     var isActionItem: Bool {
-        actionTarget != nil
+        actionTarget != nil || path.hasPrefix(Self.simctlRuntimePathPrefix)
     }
 
     var simctlRuntimeIdentifier: String? {
         if case .simulatorRuntime(let id) = actionTarget {
             return id
         }
-        return nil
+        guard path.hasPrefix(Self.simctlRuntimePathPrefix) else { return nil }
+        let id = String(path.dropFirst(Self.simctlRuntimePathPrefix.count))
+        return id.isEmpty ? nil : id
     }
 
     func hash(into hasher: inout Hasher) {
