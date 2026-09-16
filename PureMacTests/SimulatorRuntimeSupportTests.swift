@@ -142,7 +142,8 @@ final class SimulatorRuntimeSupportTests: XCTestCase {
             size: 1,
             category: .xcodeJunk,
             isSelected: false,
-            lastModified: nil
+            lastModified: nil,
+            actionTarget: .simulatorRuntime("F666EEDE-1029-48D9-BCAB-CF0E12B1D632")
         )
         XCTAssertTrue(item.isActionItem)
         XCTAssertEqual(item.simctlRuntimeIdentifier, "F666EEDE-1029-48D9-BCAB-CF0E12B1D632")
@@ -191,7 +192,7 @@ final class SimulatorRuntimeSupportTests: XCTestCase {
         XCTAssertEqual(result.stderr, SimulatorRuntimeSupport.missingXcrunMessage)
     }
 
-    func testDeleteSimulatorRuntimeReportsMissingXcrun() async {
+    func testDeleteSimulatorRuntimeReportsMissingXcrun() {
         let result = SimulatorRuntimeSupport.runXcrun(
             ["simctl", "runtime", "delete", "deadbeef"],
             availabilityCheck: { false }

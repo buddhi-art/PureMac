@@ -88,7 +88,8 @@ enum SimulatorRuntimeSupport {
                 size: runtime.sizeBytes,
                 category: .xcodeJunk,
                 isSelected: false,
-                lastModified: runtime.lastUsedAt
+                lastModified: runtime.lastUsedAt,
+                actionTarget: .simulatorRuntime(runtime.identifier)
             )
         }
     }
