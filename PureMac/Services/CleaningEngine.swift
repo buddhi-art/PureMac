@@ -186,16 +186,16 @@ actor CleaningEngine {
         // Re-validate. Don't trust the caller — anything not on the allow-list
         // refuses to escalate.
         let exclusions = CleanupExclusions.paths()
-        let validated: [(item: CleanableItem, resolved: String)] = items.compactMap { item in
+        let validated: [(item: CleanableItem, resolved: String)] = items.compactMap { item -> (item: CleanableItem, resolved: String)? in
             guard !CleanupExclusions.excludes(item.path, paths: exclusions) else { return nil }
-            guard !hasUnexpectedSymlink(in: item.path) else {
+            guard !FileSystemValidator.shared.hasUnexpectedSymlink(in: item.path) else {
                 Logger.shared.log("Refusing admin escalation for symlinked path: \(item.path)", level: .warning)
                 return nil
             }
             let resolved = URL(fileURLWithPath: item.path).resolvingSymlinksInPath().path
             let accepted: Bool = {
                 if item.category == .largeFiles {
-                    return isExplicitSingleFileDeletable(resolvedPath: resolved)
+                    return FileSystemValidator.shared.isExplicitSingleFileDeletable(resolvedPath: resolved)
                 }
                 // languageFiles is deliberately absent: an admin rm -rf of an
                 // .lproj would break the bundle's signature seal with no

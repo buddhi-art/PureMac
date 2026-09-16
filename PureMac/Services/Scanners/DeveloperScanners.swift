@@ -387,7 +387,7 @@ struct DockerCacheScanner: CategoryScannerProtocol {
                     category: .dockerCache,
                     isSelected: false,
                     lastModified: nil,
-                    actionTarget: .dockerPrune
+                    actionTarget: .dockerSystem
                 ))
             }
             break

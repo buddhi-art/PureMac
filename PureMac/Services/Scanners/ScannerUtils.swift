@@ -146,7 +146,7 @@ actor ScannerUtils {
         return size
     }
 
-    func normalizePath(_ path: String) -> String {
+    nonisolated func normalizePath(_ path: String) -> String {
         return (path as NSString).standardizingPath
     }
 
@@ -169,12 +169,6 @@ actor ScannerUtils {
         }
     }
     
-    struct DiskInfo {
-        var totalSpace: Int64 = 0
-        var freeSpace: Int64 = 0
-        var usedSpace: Int64 = 0
-        var purgeableSpace: Int64 = 0
-    }
 
     func getDiskInfo() -> DiskInfo {
         var info = DiskInfo()

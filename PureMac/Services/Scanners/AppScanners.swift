@@ -21,7 +21,7 @@ struct AiAppsScanner: CategoryScannerProtocol {
             }
         }
 
-        let uniqueItems = ScannerUtils.shared.deduplicatedItems(items)
+        let uniqueItems = await ScannerUtils.shared.deduplicatedItems(items)
         let totalSize = uniqueItems.reduce(0) { $0 + $1.size }
         return CategoryResult(category: .aiApps, items: uniqueItems.sorted { $0.size > $1.size }, totalSize: totalSize)
     }

@@ -59,8 +59,8 @@ actor ScanEngine {
         }
     }
 
-    func getDiskInfo() -> ScannerUtils.DiskInfo {
-        var info = ScannerUtils.DiskInfo()
+    func getDiskInfo() -> DiskInfo {
+        var info = DiskInfo()
         do {
             let attrs = try fileManager.attributesOfFileSystem(forPath: "/")
             if let total = attrs[.systemSize] as? Int64 {

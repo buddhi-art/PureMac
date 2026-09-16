@@ -37,7 +37,7 @@ struct UserCacheScanner: CategoryScannerProtocol {
             "\(home)/Library/Caches/npm",
             "\(home)/Library/Caches/Yarn",
             "\(home)/Library/Caches/dev.kdrag0n.MacVirt",
-        ] + ProviderPaths.deniedRoots).map { await utils.normalizePath($0) })
+        ] + ProviderPaths.deniedRoots).map { utils.normalizePath($0) })
 
         let cachePath = "\(home)/Library/Caches"
         let scanned = await utils.scanDirectory(
