@@ -165,7 +165,8 @@ final class SimulatorRuntimeSupportTests: XCTestCase {
             size: 1,
             category: .dockerCache,
             isSelected: false,
-            lastModified: nil
+            lastModified: nil,
+            actionTarget: .dockerSystem
         )
         XCTAssertTrue(dockerPrune.isActionItem)
         XCTAssertNil(dockerPrune.simctlRuntimeIdentifier)
