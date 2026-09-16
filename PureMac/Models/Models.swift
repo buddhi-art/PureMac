@@ -138,6 +138,12 @@ enum ScanState: Equatable {
 // MARK: - Cleanable Item
 
 struct CleanableItem: Identifiable, Hashable {
+    enum ActionTarget: Hashable {
+        case dockerSystem
+        case purgeableSpace
+        case simulatorRuntime(identifier: String)
+    }
+
     /// Path prefix for virtual items cleaned via `xcrun simctl runtime delete`
     /// rather than a filesystem unlink. The UUID after the colon is the
     /// runtime disk-image identifier from `simctl runtime list`.
@@ -150,6 +156,17 @@ struct CleanableItem: Identifiable, Hashable {
     let category: CleaningCategory
     var isSelected: Bool
     let lastModified: Date?
+    let actionTarget: ActionTarget?
+
+    init(name: String, path: String, size: Int64, category: CleaningCategory, isSelected: Bool, lastModified: Date?, actionTarget: ActionTarget? = nil) {
+        self.name = name
+        self.path = path
+        self.size = size
+        self.category = category
+        self.isSelected = isSelected
+        self.lastModified = lastModified
+        self.actionTarget = actionTarget
+    }
 
     var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
@@ -158,13 +175,14 @@ struct CleanableItem: Identifiable, Hashable {
     /// True for action-only items (Docker prune, simctl runtimes) that have
     /// no real filesystem path to reveal in Finder.
     var isActionItem: Bool {
-        path.isEmpty || path.hasPrefix(Self.simctlRuntimePathPrefix)
+        actionTarget != nil
     }
 
     var simctlRuntimeIdentifier: String? {
-        guard path.hasPrefix(Self.simctlRuntimePathPrefix) else { return nil }
-        let id = String(path.dropFirst(Self.simctlRuntimePathPrefix.count))
-        return id.isEmpty ? nil : id
+        if case .simulatorRuntime(let id) = actionTarget {
+            return id
+        }
+        return nil
     }
 
     func hash(into hasher: inout Hasher) {

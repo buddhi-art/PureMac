@@ -36,23 +36,38 @@ actor CleaningEngine {
                 continue
             }
 
-            if item.category == .purgeableSpace {
-                let purged = await purgePurgeableSpace()
-                result.freedSpace += purged
-                if purged > 0 { result.itemsCleaned += 1 }
-                // Purgeable space is a one-shot reclaim action, not a file
-                // unlink. Mark it handled so it isn't later mistaken for an
-                // item that "couldn't be removed" (the purge ran regardless of
-                // how much APFS chose to release). See issue #112.
-                result.cleanedPaths.insert(item.path)
-                continue
+            if let actionTarget = item.actionTarget {
+                switch actionTarget {
+                case .purgeableSpace:
+                    let purged = await purgePurgeableSpace()
+                    result.freedSpace += purged
+                    if purged > 0 { result.itemsCleaned += 1 }
+                    result.cleanedPaths.insert(item.path)
+                    continue
+                case .dockerSystem:
+                    let pruneOutcome = await pruneDockerSystem()
+                    result.freedSpace += pruneOutcome.freed
+                    if pruneOutcome.freed > 0 { result.itemsCleaned += 1 }
+                    result.cleanedPaths.insert(item.path)
+                    if let error = pruneOutcome.error {
+                        result.errors.append(error)
+                    }
+                    continue
+                case .simulatorRuntime(let runtimeID):
+                    let deleteOutcome = await deleteSimulatorRuntime(identifier: runtimeID, reportedSize: item.size)
+                    result.freedSpace += deleteOutcome.freed
+                    if deleteOutcome.cleaned {
+                        result.itemsCleaned += 1
+                        result.cleanedPaths.insert(item.path)
+                    }
+                    if let error = deleteOutcome.error {
+                        result.errors.append(error)
+                    }
+                    continue
+                }
             }
 
             if item.category == .universalBinaries {
-                // Thinning is a lipo rewrite plus re-sign, not a file unlink,
-                // so it bypasses the delete path entirely. The item path is
-                // the app bundle; the per-binary work list is re-derived here
-                // so a stale scan can't strip slices that no longer exist.
                 let thinOutcome = await thinUniversalBinaryItem(item)
                 result.freedSpace += thinOutcome.freed
                 if thinOutcome.cleaned {
@@ -66,10 +81,6 @@ actor CleaningEngine {
             }
 
             if item.category == .languageFiles {
-                // Localizations are sealed into the bundle's CodeResources; a
-                // plain unlink would break the app's code signature, so the
-                // folder is removed through BinaryThinner's staged re-sign
-                // flow instead of the delete path.
                 let lprojOutcome = await removeLanguageFileItem(item)
                 result.freedSpace += lprojOutcome.freed
                 if lprojOutcome.cleaned {
@@ -82,39 +93,9 @@ actor CleaningEngine {
                 continue
             }
 
-            if item.category == .dockerCache && item.path.isEmpty {
-                // The virtual "Docker prune" entry (empty path, like
-                // purgeableSpace) reclaims space inside the Docker/OrbStack VM
-                // via `docker system prune -f` — there is no file to unlink.
-                let pruneOutcome = await pruneDockerSystem()
-                result.freedSpace += pruneOutcome.freed
-                if pruneOutcome.freed > 0 { result.itemsCleaned += 1 }
-                result.cleanedPaths.insert(item.path)
-                if let error = pruneOutcome.error {
-                    result.errors.append(error)
-                }
-                continue
-            }
-
-            if let runtimeID = item.simctlRuntimeIdentifier {
-                // Simulator runtimes live in CoreSimulator's secure storage;
-                // deleting the mount path by hand leaves orphaned disk images.
-                // Always go through `xcrun simctl runtime delete`.
-                let deleteOutcome = await deleteSimulatorRuntime(identifier: runtimeID, reportedSize: item.size)
-                result.freedSpace += deleteOutcome.freed
-                if deleteOutcome.cleaned {
-                    result.itemsCleaned += 1
-                    result.cleanedPaths.insert(item.path)
-                }
-                if let error = deleteOutcome.error {
-                    result.errors.append(error)
-                }
-                continue
-            }
-
             do {
                 let itemURL = URL(fileURLWithPath: item.path)
-                guard !hasUnexpectedSymlink(in: item.path) else {
+                guard !FileSystemValidator.shared.hasUnexpectedSymlink(in: item.path) else {
                     let msg = "Skipped symlink or unsafe path: \(item.path)"
                     Logger.shared.log(msg, level: .warning)
                     result.errors.append(msg)
@@ -127,16 +108,11 @@ actor CleaningEngine {
                 let resolvedURL = itemURL.resolvingSymlinksInPath()
                 let resolved = resolvedURL.path
 
-                // Large files surfaced by scanLargeFiles are per-file items
-                // under Downloads/Documents/Desktop; those get a narrower check
-                // instead of the whole-subtree allow-list.
                 let pathAccepted: Bool = {
                     if item.category == .largeFiles {
-                        return isExplicitSingleFileDeletable(resolvedPath: resolved)
+                        return FileSystemValidator.shared.isExplicitSingleFileDeletable(resolvedPath: resolved)
                     }
-                    // languageFiles never reaches here — it is handled above
-                    // via the staged re-sign flow, not the delete path.
-                    return isSafeToDelete(resolvedPath: resolved)
+                    return FileSystemValidator.shared.isSafeToDelete(resolvedPath: resolved)
                 }()
                 guard pathAccepted else {
                     let msg = "Skipped symlink or unsafe path: \(item.path) -> \(resolved)"
@@ -145,11 +121,8 @@ actor CleaningEngine {
                     continue
                 }
 
-                // Narrow the TOCTOU window: re-resolve right before the delete
-                // and require the resolved path to still match. Any concurrent
-                // swap between check and delete aborts the operation.
                 let reResolved = itemURL.resolvingSymlinksInPath().path
-                guard reResolved == resolved, !hasUnexpectedSymlink(in: item.path) else {
+                guard reResolved == resolved, !FileSystemValidator.shared.hasUnexpectedSymlink(in: item.path) else {
                     let msg = "Aborting delete: path resolution changed between check and unlink for \(item.path)"
                     Logger.shared.log(msg, level: .warning)
                     result.errors.append(msg)
@@ -258,19 +231,9 @@ actor CleaningEngine {
             }
         }
 
-        let tempFile = FileManager.default.temporaryDirectory
-            .appendingPathComponent("puremac-rm-\(UUID().uuidString)")
-        do {
-            try payload.write(to: tempFile, options: [.atomic])
-        } catch {
-            Logger.shared.log("Couldn't stage admin path list: \(error.localizedDescription)", level: .error)
-            return result
-        }
-        defer { try? FileManager.default.removeItem(at: tempFile) }
-
-        let quotedTempPath = shellSingleQuoted(tempFile.path)
+        let base64Payload = payload.base64EncodedString()
         let script = """
-        do shell script "/usr/bin/xargs -0 /bin/rm -rf -- < \(quotedTempPath)" with administrator privileges
+        do shell script "echo '\(base64Payload)' | /usr/bin/base64 -D | /usr/bin/xargs -0 /bin/rm -rf --" with administrator privileges
         """
 
         let runError: String? = await withCheckedContinuation { continuation in
@@ -578,7 +541,7 @@ actor CleaningEngine {
         guard (normalized as NSString).pathExtension.lowercased() == "lproj" else { return false }
 
         let home = fileManager.homeDirectoryForCurrentUser.path
-        guard isInside(normalized, root: "/Applications") || isInside(normalized, root: "\(home)/Applications") else {
+        guard FileSystemValidator.shared.isInside(normalized, root: "/Applications") || FileSystemValidator.shared.isInside(normalized, root: "\(home)/Applications") else {
             return false
         }
 
@@ -704,7 +667,7 @@ actor CleaningEngine {
     }
 
     private func isAppBundlePath(_ path: String, rootedAt root: String) -> Bool {
-        guard isInside(path, root: root) else { return false }
+        guard FileSystemValidator.shared.isInside(path, root: root) else { return false }
         let normalizedRoot = (root as NSString).standardizingPath
         guard path != normalizedRoot else { return false }
         let rootWithSeparator = normalizedRoot.hasSuffix("/") ? normalizedRoot : normalizedRoot + "/"
@@ -726,44 +689,8 @@ actor CleaningEngine {
         return parent == (root as NSString).standardizingPath && (path as NSString).pathExtension.lowercased() == "plist"
     }
 
-    private func isInside(_ path: String, root: String) -> Bool {
-        let normalizedRoot = (root as NSString).standardizingPath
-        if path == normalizedRoot { return true }
-        let rootWithSeparator = normalizedRoot.hasSuffix("/") ? normalizedRoot : normalizedRoot + "/"
-        return path.hasPrefix(rootWithSeparator)
-    }
-
-    private func hasUnexpectedSymlink(in path: String) -> Bool {
-        var url = URL(fileURLWithPath: path).standardizedFileURL
-        while url.path != "/" {
-            let current = url.path
-            let type = (try? fileManager.attributesOfItem(atPath: current)[.type]) as? FileAttributeType
-            if type == .typeSymbolicLink, current != "/tmp", current != "/var" {
-                return true
-            }
-            let parent = url.deletingLastPathComponent()
-            if parent.path == current { break }
-            url = parent
-        }
-        return false
-    }
-
     private func shellSingleQuoted(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
-    }
-
-    /// Allow a single-file delete under Downloads/Documents/Desktop when it
-    /// was explicitly surfaced by a scanner (e.g. scanLargeFiles). Whole-subtree
-    /// deletion of those roots remains blocked.
-    func isExplicitSingleFileDeletable(resolvedPath: String) -> Bool {
-        let home = fileManager.homeDirectoryForCurrentUser.path
-        let perFileRoots = [
-            "\(home)/Downloads/",
-            "\(home)/Documents/",
-            "\(home)/Desktop/",
-        ]
-        let normalized = (resolvedPath as NSString).standardizingPath
-        return perFileRoots.contains { normalized.hasPrefix($0) }
     }
 
     private func getCurrentFreeSpace() -> Int64 {

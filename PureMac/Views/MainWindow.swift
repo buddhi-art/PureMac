@@ -343,10 +343,10 @@ struct MainWindow: View {
     }
 
     private var sidebarBackground: some View {
-        Color(nsColor: colorScheme == .dark ? .underPageBackgroundColor : .windowBackgroundColor)
+        VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
             .overlay(alignment: .trailing) {
                 Rectangle()
-                    .fill(Color.primary.opacity(0.07))
+                    .fill(Color.white.opacity(0.1))
                     .frame(width: 0.5)
             }
             .ignoresSafeArea()
@@ -360,9 +360,11 @@ struct MainWindow: View {
         .padding(.horizontal, 12)
         .padding(.top, 9)
         .padding(.bottom, 10)
-        .background(.regularMaterial)
+        .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
-            Divider()
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 0.5)
         }
     }
 

@@ -106,14 +106,14 @@ struct PureMacApp: App {
                     OnboardingView(isComplete: $onboardingComplete)
                 }
             }
+            .ignoresSafeArea()
             .environmentObject(theme)
             // Record the openWindow action so the menu-bar popover can reopen
             // this window after it's been closed (the popover lives outside the
             // scene graph and can't use openWindow itself).
             .background(WindowOpenerCapture())
         }
-        .windowStyle(.automatic)
-        .windowToolbarStyle(.unified)
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1120, height: 740)
         .commands {

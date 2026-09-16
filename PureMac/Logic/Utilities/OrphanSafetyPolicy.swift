@@ -47,13 +47,7 @@ enum OrphanSafetyPolicy {
             }
         }
 
-        // Require the match to land STRICTLY inside the allowed root, not at a
-        // sibling like /tmpfoo. Trailing "/" prevents hasPrefix from matching
-        // sibling directories whose names merely start with the root name.
-        guard allowedRoots.contains(where: { root in
-            let rootWithSlash = root.lowercased() + "/"
-            return lowerPath.hasPrefix(rootWithSlash)
-        }) else {
+        guard FileSystemValidator.shared.isSafeToDelete(resolvedPath: lowerPath) else {
             return false
         }
 

@@ -69,9 +69,9 @@ enum Tint {
 }
 
 enum MotionTokens {
-    static let snappy = Animation.spring(response: 0.28, dampingFraction: 0.82)
-    static let gentle = Animation.spring(response: 0.46, dampingFraction: 0.88)
-    static let press = Animation.easeOut(duration: 0.1)
+    static let snappy = Animation.spring(response: 0.3, dampingFraction: 1.0)
+    static let gentle = Animation.spring(response: 0.4, dampingFraction: 1.0)
+    static let press = Animation.spring(response: 0.25, dampingFraction: 0.8)
 }
 
 enum TintGradient {
@@ -128,7 +128,12 @@ struct AmbientBackdrop: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Color(nsColor: .windowBackgroundColor)
+            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+            
+            // Colorful mesh gradient overlay for Liquid Glass feel
+            LinearGradient(colors: [Tint.accent.opacity(0.15), Tint.purple.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .blendMode(colorScheme == .dark ? .screen : .multiply)
+            
             Rectangle()
                 .fill(colorScheme == .dark ? Color.white.opacity(0.018) : Color.black.opacity(0.014))
                 .frame(height: 96)
@@ -152,13 +157,9 @@ struct CardSurface<Content: View>: View {
             .padding(padding)
             .background {
                 ZStack {
-                    if let material {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(material)
-                    } else {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor))
-                    }
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(material ?? .ultraThinMaterial)
+                    
                     if let tint {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(tint.opacity(0.035))
@@ -167,7 +168,7 @@ struct CardSurface<Content: View>: View {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.075), lineWidth: 0.5)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
             }
             .overlay(alignment: .top) {
                 if let accent {
