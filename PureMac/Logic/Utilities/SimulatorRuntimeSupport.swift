@@ -89,7 +89,7 @@ enum SimulatorRuntimeSupport {
                 category: .xcodeJunk,
                 isSelected: false,
                 lastModified: runtime.lastUsedAt,
-                actionTarget: .simulatorRuntime(runtime.identifier)
+                actionTarget: .simulatorRuntime(identifier: runtime.identifier)
             )
         }
     }

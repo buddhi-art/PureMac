@@ -143,7 +143,7 @@ final class SimulatorRuntimeSupportTests: XCTestCase {
             category: .xcodeJunk,
             isSelected: false,
             lastModified: nil,
-            actionTarget: .simulatorRuntime("F666EEDE-1029-48D9-BCAB-CF0E12B1D632")
+            actionTarget: .simulatorRuntime(identifier: "F666EEDE-1029-48D9-BCAB-CF0E12B1D632")
         )
         XCTAssertTrue(item.isActionItem)
         XCTAssertEqual(item.simctlRuntimeIdentifier, "F666EEDE-1029-48D9-BCAB-CF0E12B1D632")
