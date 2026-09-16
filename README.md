@@ -20,12 +20,13 @@
 
 <p align="center">
   <b>Reclaim your Mac.</b><br>
-  Free, open-source Mac care: cleanup, app management, storage exploration, and system checks. No subscription or telemetry.
+  Free, open-source Mac care: cleanup, app management, storage exploration, and system checks. Now featuring the stunning <b>Liquid Glass</b> UI overhaul designed for macOS 27 Golden Gate. No subscription or telemetry.
 </p>
 
 <p align="center">
   <a href="https://github.com/momenbasel/PureMac/releases/latest"><img src="https://img.shields.io/github/v/release/momenbasel/PureMac?style=flat-square&label=Download" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/macOS-13.0+-blue?style=flat-square" alt="macOS 13.0+">
+  <img src="https://img.shields.io/badge/UI-Liquid%20Glass-purple?style=flat-square" alt="Liquid Glass UI">
   <img src="https://img.shields.io/badge/Signed%20%26%20Notarized-Apple-success?style=flat-square" alt="Signed & Notarized by Apple">
   <img src="https://img.shields.io/badge/telemetry-none-success?style=flat-square" alt="No telemetry">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/momenbasel/PureMac?style=flat-square" alt="MIT License"></a>
