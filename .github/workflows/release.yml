@@ -87,7 +87,7 @@ jobs:
             --app-drop-link 400 180 \
             --no-internet-enable \
             "${DMG}" \
-            build/export/PureMac.app
+            build/export/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
