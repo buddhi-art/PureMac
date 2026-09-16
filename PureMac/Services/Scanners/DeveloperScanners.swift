@@ -200,15 +200,15 @@ struct NodeCacheScanner: CategoryScannerProtocol {
 
         for manager in managers {
             if Task.isCancelled { break }
-            var paths = approvedNodeCacheRoots(for: manager.manager, home: home)
+            var paths = Self.approvedNodeCacheRoots(for: manager.manager, home: home)
                 .compactMap {
-                    validatedNodeCachePath($0, manager: manager.manager, home: home)
+                    Self.validatedNodeCachePath($0, manager: manager.manager, home: home)
                 }
 
             if let cmd = manager.detectionCommand,
                let cliPath = locateExecutable(named: cmd.cli, searchPaths: cliSearchPaths),
                let detected = await runCommandReadingStdout(executable: cliPath, args: cmd.args) {
-                if let validated = validatedNodeCachePath(
+                if let validated = Self.validatedNodeCachePath(
                     detected,
                     manager: manager.manager,
                     home: home
@@ -225,7 +225,7 @@ struct NodeCacheScanner: CategoryScannerProtocol {
             }
 
             if Task.isCancelled { break }
-            paths = prunedNodeCachePaths(paths)
+            paths = Self.prunedNodeCachePaths(paths)
 
             for path in paths {
                 guard fileManager.fileExists(atPath: path) else { continue }
@@ -247,7 +247,7 @@ struct NodeCacheScanner: CategoryScannerProtocol {
         return CategoryResult(category: .nodeCache, items: items, totalSize: totalSize)
     }
 
-    private func approvedNodeCacheRoots(for manager: NodeCacheManager, home: String) -> [String] {
+    static func approvedNodeCacheRoots(for manager: NodeCacheManager, home: String) -> [String] {
         let normalizedHome = ScannerUtils.shared.normalizePath(home)
         switch manager {
         case .npm:
@@ -270,7 +270,7 @@ struct NodeCacheScanner: CategoryScannerProtocol {
         }
     }
 
-    private func validatedNodeCachePath(_ candidate: String, manager: NodeCacheManager, home: String) -> String? {
+    static func validatedNodeCachePath(_ candidate: String, manager: NodeCacheManager, home: String) -> String? {
         let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               trimmed.hasPrefix("/"),
@@ -291,7 +291,7 @@ struct NodeCacheScanner: CategoryScannerProtocol {
         return resolved
     }
 
-    private func prunedNodeCachePaths(_ paths: [String]) -> [String] {
+    static func prunedNodeCachePaths(_ paths: [String]) -> [String] {
         var kept: [String] = []
         for path in paths.sorted(by: {
             if $0.count != $1.count { return $0.count < $1.count }

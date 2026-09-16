@@ -6,15 +6,15 @@ final class NodeCachePathTests: XCTestCase {
         let home = "/Users/example"
 
         XCTAssertEqual(
-            ScanEngine.approvedNodeCacheRoots(for: .npm, home: home),
+            NodeCacheScanner.approvedNodeCacheRoots(for: .npm, home: home),
             ["/Users/example/.npm", "/Users/example/Library/Caches/npm"]
         )
         XCTAssertEqual(
-            ScanEngine.approvedNodeCacheRoots(for: .yarn, home: home),
+            NodeCacheScanner.approvedNodeCacheRoots(for: .yarn, home: home),
             ["/Users/example/Library/Caches/Yarn", "/Users/example/.cache/yarn"]
         )
         XCTAssertEqual(
-            ScanEngine.approvedNodeCacheRoots(for: .pnpm, home: home),
+            NodeCacheScanner.approvedNodeCacheRoots(for: .pnpm, home: home),
             [
                 "/Users/example/Library/pnpm/store",
                 "/Users/example/.local/share/pnpm/store",
@@ -28,7 +28,7 @@ final class NodeCachePathTests: XCTestCase {
         let home = "/Users/example"
 
         XCTAssertEqual(
-            ScanEngine.validatedNodeCachePath(
+            NodeCacheScanner.validatedNodeCachePath(
                 "/Users/example/.npm/_cacache",
                 manager: .npm,
                 home: home
@@ -36,7 +36,7 @@ final class NodeCachePathTests: XCTestCase {
             "/Users/example/.npm/_cacache"
         )
         XCTAssertEqual(
-            ScanEngine.validatedNodeCachePath(
+            NodeCacheScanner.validatedNodeCachePath(
                 "/Users/example/Library/pnpm/store/v10",
                 manager: .pnpm,
                 home: home
@@ -44,7 +44,7 @@ final class NodeCachePathTests: XCTestCase {
             "/Users/example/Library/pnpm/store/v10"
         )
         XCTAssertNil(
-            ScanEngine.validatedNodeCachePath(
+            NodeCacheScanner.validatedNodeCachePath(
                 "/Users/example/.npm",
                 manager: .pnpm,
                 home: home
@@ -67,7 +67,7 @@ final class NodeCachePathTests: XCTestCase {
 
         for candidate in rejected {
             XCTAssertNil(
-                ScanEngine.validatedNodeCachePath(candidate, manager: .npm, home: home),
+                NodeCacheScanner.validatedNodeCachePath(candidate, manager: .npm, home: home),
                 candidate
             )
         }
@@ -88,7 +88,7 @@ final class NodeCachePathTests: XCTestCase {
 
         let home = homeURL.resolvingSymlinksInPath().path
         XCTAssertNil(
-            ScanEngine.validatedNodeCachePath(
+            NodeCacheScanner.validatedNodeCachePath(
                 aliasURL.path,
                 manager: .npm,
                 home: home
@@ -106,7 +106,7 @@ final class NodeCachePathTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            ScanEngine.prunedNodeCachePaths(paths),
+            NodeCacheScanner.prunedNodeCachePaths(paths),
             ["/Users/example/.npm", "/Users/example/Library/Caches/npm"]
         )
     }
